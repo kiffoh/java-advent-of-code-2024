@@ -1,10 +1,6 @@
-
-import java.awt.RenderingHints;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
 import java.util.HashSet;
-import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 
 public class SixFive {
@@ -28,7 +24,7 @@ public class SixFive {
     //     ........#.
     //     #.........
     //     ......#...
-    // """;
+    //     """;
 
     static final String inputString = """
         #.....#.........#.........................#...#....................#......#.......#...........#........#..........................
@@ -161,7 +157,7 @@ public class SixFive {
         ........................................#.....................#....................................#........#......#......#.......
         .............#........#.............#...........#..#..#.......................................................#......#............
         #...................#.#........................................#..................................#...#...........................
-    """;
+        """;
 
     private static void convertInputStringToCharArray() {
         String[] splitLines = inputString.split("\n");
@@ -176,9 +172,6 @@ public class SixFive {
     static int maxCols;
 
     public static void simulateGuardPath() {
-        // I want to search the previous path and see if there is a coordinate in the new direction in visited
-        // Afterwards I can check if there is an obstacle in the way if there is a coordinate in that section
-
         maxRows = input.length;
         maxCols = input[0].length;
         
@@ -202,49 +195,64 @@ public class SixFive {
         }
         
         System.out.println("Guard starting at: Row " + startRow + ", Col " + startCol);
+
+        int numberOfInfiniteLoops = 0;
+
+        for (int row = 0; row < maxRows; row++) {
+            for (int col = 0; col < maxCols; col++) {
+                if (input[row][col] == '#' || (row == startRow && col == startCol)) {
+                    continue;
+                } 
+
+                // Add temporary obstacle
+                input[row][col] = '#';
+
+                // Check if loop exists with a starting direction of 0 (Guard facing up)
+                if (loopExists(startRow, startCol, 0)) {
+                    numberOfInfiniteLoops++;
+                }
+
+                // Remove temporary obstacle
+                input[row][col] = '.';
+            }
+        }
         
-        // Track visited positions
-        Set<Point> visited = new HashSet<>();
-        
-        // Starting position and direction
+        // Print numberOfInfiniteLoops
+        System.out.println("Total infinite loop positions available: " + numberOfInfiniteLoops);
+    }
+
+    public static boolean loopExists(int startRow, int startCol, int startDirection) {
+
+        Set<Triple> visited = new HashSet<>();
+
+
         int row = startRow;
         int col = startCol;
-        int direction = 0; // Start facing up
+        int direction = startDirection;
         
-        // Add starting position
-        visited.add(new Point(row, col));
-        
+        // maxSteps to prevent an infinite loop. 
+        // Calculation allows for each position in each direction
+        int maxSteps = 4 * maxRows * maxCols;
+
         // Main simulation loop
-        while (true) {
+        for (int step = 0; step <= maxSteps; step++) {
             // Calculate next position
-            int[] dir = directions.get(direction);
-            int newRow = row + dir[0];
-            int newCol = col + dir[1];
+            int[] dirs = directions.get(direction);
+            int newRow = row + dirs[0];
+            int newCol = col + dirs[1];
+            Triple currentCoordinates = new Triple(row, col, direction);
 
-            // See if there is a visited square if the guard were to rotate to the RHS
-            int tempRow = row;
-            int tempCol = col;
-            int[] tempDirection = directions.get((direction + 1 ) % 4);
-
-            // I don't want to leave the map if there is something on the RHS
-            while (Math.min(tempRow, tempCol) >= 0 || tempCol < maxCols || tempRow < maxRows) {
-
-                tempRow += tempDirection[0];
-                tempCol += tempDirection[1];
-
-                Point tempCoordinates = new Point(tempRow, tempCol);
-                if (visited.contains(tempCoordinates)) {
-                    Point currentCoordinates = new Point(row, col); 
-                    checkIfObjectInWayOfPath(currentCoordinates, tempCoordinates);
-                }
-            }
-            
-            // Check if we're leaving the map
+             // Check if we're leaving the map
             if (newRow < 0 || newRow >= maxRows || newCol < 0 || newCol >= maxCols) {
-                System.out.println("Guard left the map at: Row " + newRow + ", Col " + newCol);
-                break;
+                // As guard left map there is not an infinite loop present
+                return false;
             }
-            
+
+            // Coordinate has already been visited (in the same direction), therefore guard stuck in infinite loop
+            if (visited.contains(currentCoordinates)) {
+                return true;
+            }
+
             // Check if there's an obstacle
             if (input[newRow][newCol] == '#') {
                 // Turn right
@@ -253,20 +261,52 @@ public class SixFive {
                 // Move forward
                 row = newRow;
                 col = newCol;
-                visited.add(new Point(row, col));
+                visited.add(currentCoordinates);
             }
-        }
-        
-        System.out.println("Total distinct positions visited: " + visited.size());
-    }
 
-    public static boolean checkIfObjectInWayOfPath(curCoords, tempCoords) {
-        
+        }
+
+        // Guard not left map in appropriate time, therefore infinite loop present
+        return true;
     }
 
     public static void main(String[] args) {
         convertInputStringToCharArray();
         simulateGuardPath();
+    }
+}
+
+class Triple {
+    private final int x;
+    private final int y;
+    private final int z;
+
+    public Triple(int x, int y, int z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public int getX() { return x; }
+    public int getY() { return y; }
+    public int getZ() { return z; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Triple triple = (Triple) o;
+        return x == triple.x && y == triple.y && z == triple.z;
+    }
+
+    @Override
+    public String toString() {
+        return "(" + x + ", " + y + ", " + z + ")";
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * x + y + z;
     }
 }
 
@@ -288,6 +328,11 @@ class Point {
         if (o == null || getClass() != o.getClass()) return false;
         Point point = (Point) o;
         return x == point.x && y == point.y;
+    }
+
+    @Override
+    public String toString() {
+        return "(" + x + ", " + y + ")";
     }
 
     @Override
