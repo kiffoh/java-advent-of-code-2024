@@ -2,7 +2,6 @@
 import java.awt.Point;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +17,9 @@ class TwentyOne {
     //     456A
     //     379A
     // """;
+    // static String input = """
+    //     029A
+    // """;
 
     static String input = """
         480A
@@ -26,20 +28,6 @@ class TwentyOne {
         246A
         938A
     """;
-
-    static Point startingNumericPosition = new Point(3, 2); // 'A'
-    static Point startingDirectionalPosition = new Point(2, 0); // 'A'
-
-    static Map<Character, Map<Integer, Character>> DIRECTIONS = Map.of(
-        'y', Map.of(
-            1, 'v',
-            -1, '^'
-        ),
-        'x', Map.of(
-            1, '>',
-            -1, '<'
-        )
-    );
 
     static final Map<Character, Point> numericCharToPoint = new HashMap<>();
     static {
@@ -92,18 +80,10 @@ class TwentyOne {
     }
 
     static final class Difference {
-        int x, y, combinations;
+        int x, y;
         public Difference(int x, int y) {
             this.x = x;
             this.y = y;
-            calculateCombinations();
-        }
-
-        public void calculateCombinations() {
-            this.combinations = 0;
-            if (this.x > 1 && this.y > 1) {
-                this.combinations = this.x + this.y;
-            }
         }
 
         @Override
@@ -113,28 +93,18 @@ class TwentyOne {
     }
 
     public static Difference calculateDifference(Point starting, Point ending) {
+        // System.out.println("Starting: " + starting + ", ending: " + ending);
         return new Difference(ending.x - starting.x, ending.y - starting.y);
     }
 
     public static Point getCharacterPoint(char character, Map<Character, Point> map) {
         return map.get(character);
-    }
-
-    static class Pop {
-        Integer delta;
-        List<Integer> arr;
-        Pop(Integer delta, List<Integer> arr){
-            this.delta = delta;
-            this.arr = arr;
-        }
-    }
+    };
 
     static class Path extends Point{
         List<Integer> dx;
         List<Integer> dy;
         String str;
-        Set<Character> Y_SYMBOLS = Set.of('^', 'v');
-        Set<Character> X_SYMBOLS = Set.of('<', '>');
 
         Path(Path prev) {
             super(prev.x, prev.y);
@@ -249,7 +219,8 @@ class TwentyOne {
         }
         // System.err.println("availablePaths: " + availablePaths);
         // System.err.println("getOptimalPath: " + getOptimalPath(availablePaths));
-        return getOptimalPath(availablePaths);
+        // return getOptimalPath(availablePaths);
+        return availablePaths;
     }
 
     static class Output {
@@ -293,55 +264,101 @@ class TwentyOne {
         }
     }
 
-    public static String convertNumericToDirectional(String numericInput) {
-        Point starting = getCharacterPoint('A', numericCharToPoint);
+    public static List<String> convertNumericToDirectional(char starting, char ending) {
+        Point start = getCharacterPoint(starting, numericCharToPoint);
         Output output = new Output();
-        for (char number: numericInput.toCharArray()) {
-            Point ending = getCharacterPoint(number, numericCharToPoint);
-            Difference diff = calculateDifference(starting, ending);
-            output.add(validPaths(starting, ending, diff, numericPointToChar));
-            starting = ending;
-        }
-        return output.returnQuickestPath();
+        // System.out.println("Journey: " + starting + ", " + ending);
+        Point end = getCharacterPoint(ending, numericCharToPoint);
+        Difference diff = calculateDifference(start, end);
+        output.add(validPaths(start, end, diff, numericPointToChar));
+        return output.printArray();
     }
 
-    public static String convertInputToDirectional(String directionalInput) {
-        Point starting = getCharacterPoint('A', directionalCharToPoint);
-        Output output = new Output();
-        for (char number: directionalInput.toCharArray()) {
-            Point ending = getCharacterPoint(number, directionalCharToPoint);
-            Difference diff = calculateDifference(starting, ending);
-            output.add(validPaths(starting, ending, diff, directionalPointToChar));
-            starting = ending;
+    // public static String convertInputToDirectional(String directionalInput) {
+    //     Point starting = getCharacterPoint('A', directionalCharToPoint);
+    //     Output output = new Output();
+    //     for (char number: directionalInput.toCharArray()) {
+    //         Point ending = getCharacterPoint(number, directionalCharToPoint);
+    //         Difference diff = calculateDifference(starting, ending);
+    //         output.add(validPaths(starting, ending, diff, directionalPointToChar));
+    //         starting = ending;
+    //     }
+    //     return output.returnQuickestPath();
+    // }
+    public static List<String> convertInputToDirectional (List<String> prev) {
+        List<String> newIteration = new ArrayList<>();
+        for (String potentialPath: prev) {
+            newIteration.addAll(applyDirectionalChanges(potentialPath));
         }
-        return output.returnQuickestPath();
+        return newIteration;
+    }
+    public static List<String> applyDirectionalChanges(String potentialPath) {
+        String[] array = ("A" + potentialPath).split("");
+        List<List<String>> output = new ArrayList<>();
+        for (int i = 0; i < array.length - 1; i++) {
+            if (array[i].equals(array[i+1])) {
+                // Add an empty string in this case
+                for (List<String> list : output) {
+                    list.add("");
+                }
+                continue;
+            };
+            
+            String key = array[i] + array[i+1];
+            List<String> values = cache.get(key);
+            List<List<String>> updated = new ArrayList<>();
+            for (String value: values) {
+                if (output.isEmpty()) {
+                    List<String> newPath = new ArrayList<>();
+                    newPath.add(value);
+                    updated.add(newPath);
+                } else {
+                    for (List<String> existingPath: output) {
+                        List<String> existingPathCopy = new ArrayList<>(existingPath);
+                        existingPathCopy.add(value);
+                        updated.add(existingPathCopy);
+                    }
+                }
+            }
+            output = updated;
+        }
+        return output.stream().map(list -> String.join("A", list) + "A").toList();
+    }
+
+    public static long getQuickestPath(List<String> paths) {
+        return paths.stream().mapToLong(String::length).min().orElseThrow(() -> new IllegalStateException("No paths found"));
+    }
+
+    public static long determineBestPath(List<String> paths) {
+        Long bestPath = null;
+        for (String path: paths) {
+            List<String> newIterations = applyDirectionalChanges(path);
+            // System.err.println("\n"+path + " newIterations: " + newIterations);
+            long quickest = getQuickestPath(newIterations);
+            if (bestPath != null) {
+                if (quickest < bestPath) bestPath = quickest;
+            } else bestPath = quickest;
+        }
+        return bestPath;
     }
 
     public static long runConversion(String stringInput) {
-        String output1 = convertNumericToDirectional(stringInput);
-        // String output1 = "<A^A>^^AvvvA";
-        // System.err.println("\noutput1");
-        // System.err.println(output1);
-
-        // OUTPUT 2
-        String output2 = convertInputToDirectional(output1);
-        // System.err.println("\noutput2");
-        // // String output2 = "v<<A>>^A<A>AvA<^AA>A<vAAA>^A";
-        // System.err.println(output2);
-        // System.err.println("v<<A>>^A<A>AvA<^AA>A<vAAA>^A");
-        // System.err.println(output2.length() == "v<<A>>^A<A>AvA<^AA>A<vAAA>^A".length());
-        // System.err.println(output2.length());
-        // System.err.println("v<<A>>^A<A>AvA<^AA>A<vAAA>^A".length());
-
-        // OUTPUT 3
-        String output3 = convertInputToDirectional(output2);
-        // System.err.println("\noutput3");
-        // System.err.println(Arrays.toString(output3.split("A")));
-        // System.err.println(Arrays.toString("<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A".split("A")));
-        // System.err.println("output3 length match example? " + String.format("%b" ,output3.length() == "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A".length()));
-        // System.err.println("output3 length: " + output3.length());
-        // System.err.println("example length: " + "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A".length());
-        return output3.length();
+        char starting = 'A';
+        long total = 0;
+        // System.out.println("StringInput: " + stringInput.trim());
+        for (char number: stringInput.trim().toCharArray()) {
+            // System.out.println("\nnumber: " + number);
+            List<String> output1 = convertNumericToDirectional(starting, number);
+            // System.err.println("output1: " + output1);
+            List<String> output2 = convertInputToDirectional(output1);
+            // System.err.println("output2: " + output2);
+            // For each path in output2 I want to get the new paths and produce the lowest number
+            long output3 = determineBestPath(output2);
+            // System.err.println("output3: " + output3);
+            starting = number;
+            total += output3;
+        }
+        return total;
     }
 
     public static long removeLeadingZeros(String num) {
@@ -356,11 +373,31 @@ class TwentyOne {
         return Long.parseLong(num.substring(i, num.length() - 1));
     }
 
+    public static Map<String, List<String>> createCache() {
+        char[] characters = new char[]{'A', '^', '<', '>', 'v'};
+        Map<String, List<String>> cache = new HashMap<>();
+        for (char c1: characters) {
+            Point p1 = getCharacterPoint(c1, directionalCharToPoint);
+            for (char c2: characters) {
+                Point p2 = getCharacterPoint(c2, directionalCharToPoint);
+                if (c1 == c2) continue;
+                String key = String.valueOf(c1) + String.valueOf(c2);
+                cache.put(key, validPaths(p1, p2, calculateDifference(p1, p2), directionalPointToChar));
+            }
+        }
+        return cache;
+    }
+
+    static Map<String, List<String>> cache;
+
     public static void main(String[] args) {
         String[] splitInput = input.trim().split("\n");
         long total = 0;
+        cache = createCache();
+        // System.out.println(cache);
         for (String sequence: splitInput) {
             // System.err.println("sequence: " + sequence);
+            // runConversion(input);
             long length = runConversion(sequence.trim());
             long num = removeLeadingZeros(sequence.trim());
             total += length * num;
