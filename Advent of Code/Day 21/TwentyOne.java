@@ -160,28 +160,6 @@ class TwentyOne {
         }
     }
 
-    public static List<String> getOptimalPath(List<String> availablePaths) {
-        int maxTransitions = availablePaths.get(0).length();
-        List<String> optimalPath = new ArrayList<>();
-        for (String pathString: availablePaths) {
-            int pathTransitions = 0;
-            for (int i = 0; i < pathString.length() - 1; i++) {
-                if (pathString.charAt(i) != pathString.charAt(i + 1)) {
-                    pathTransitions++;
-                }
-            }
-            if (pathTransitions < maxTransitions) {
-                maxTransitions = pathTransitions;
-                optimalPath = new ArrayList<>();
-            } 
-            if (pathTransitions <= maxTransitions) {
-                optimalPath.add(pathString);
-            }
-        }
-        if (!optimalPath.isEmpty()) return optimalPath;
-        throw new IllegalStateException("optimalPath not initialised");
-    }
-
     public static List<String> validPaths(Point starting, Point ending, Difference diff, Map<Point, Character> map) {
         Queue<Path> queue = new ArrayDeque<>();
         Path startingPath = new Path(starting.x, starting.y, diff.x, diff.y);
@@ -218,8 +196,6 @@ class TwentyOne {
             
         }
         // System.err.println("availablePaths: " + availablePaths);
-        // System.err.println("getOptimalPath: " + getOptimalPath(availablePaths));
-        // return getOptimalPath(availablePaths);
         return availablePaths;
     }
 
@@ -274,17 +250,6 @@ class TwentyOne {
         return output.printArray();
     }
 
-    // public static String convertInputToDirectional(String directionalInput) {
-    //     Point starting = getCharacterPoint('A', directionalCharToPoint);
-    //     Output output = new Output();
-    //     for (char number: directionalInput.toCharArray()) {
-    //         Point ending = getCharacterPoint(number, directionalCharToPoint);
-    //         Difference diff = calculateDifference(starting, ending);
-    //         output.add(validPaths(starting, ending, diff, directionalPointToChar));
-    //         starting = ending;
-    //     }
-    //     return output.returnQuickestPath();
-    // }
     public static List<String> convertInputToDirectional (List<String> prev) {
         List<String> newIteration = new ArrayList<>();
         for (String potentialPath: prev) {
@@ -303,7 +268,7 @@ class TwentyOne {
                 }
                 continue;
             };
-            
+
             String key = array[i] + array[i+1];
             List<String> values = cache.get(key);
             List<List<String>> updated = new ArrayList<>();
@@ -348,15 +313,15 @@ class TwentyOne {
         // System.out.println("StringInput: " + stringInput.trim());
         for (char number: stringInput.trim().toCharArray()) {
             // System.out.println("\nnumber: " + number);
-            List<String> output1 = convertNumericToDirectional(starting, number);
+            List<String> numericPaths = convertNumericToDirectional(starting, number);
             // System.err.println("output1: " + output1);
-            List<String> output2 = convertInputToDirectional(output1);
+            List<String> robotPaths = convertInputToDirectional(numericPaths);
             // System.err.println("output2: " + output2);
             // For each path in output2 I want to get the new paths and produce the lowest number
-            long output3 = determineBestPath(output2);
+            long finalOutput = determineBestPath(robotPaths);
             // System.err.println("output3: " + output3);
             starting = number;
-            total += output3;
+            total += finalOutput;
         }
         return total;
     }
