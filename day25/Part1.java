@@ -111,7 +111,6 @@ public class Part1 {
     }
 
     public static void main(String[] args) throws Exception {
-        // parseInput("small_input.txt");
         parseInput("input.txt");
         int combinations = generateCombinations();
         System.err.println("Total combinations: " + combinations);
